@@ -2,6 +2,8 @@
 
 Welcome to the **C# to Pseudo Code Converter** project! This tool aims to take C# code snippets and output a language-agnostic pseudo code version. Eventually, this converter will be integrated into [Gainliner.com](https://gainliner.com) to help visualize code logic and aid in learning or documentation.
 
+> :warning: **This project is currently in a very early stage and it does not work as intended** - please give it some time.
+
 ---
 
 ## Table of Contents
