@@ -52,12 +52,12 @@ Key limitations right now:
 3. **Output**: The transformed pseudo code is printed or saved, ready for further formatting or display on [Gainliner.com](https://gainliner.com).
 
 ```plaintext
-C# code               Pseudo code
---------------------------------
-public void Hello()   function Hello():
-{
+C# code                                                 Pseudo code
+--------------------------------------------------------------------
+public void Hello()                                 function Hello():
+{                                                       print "Hi"
     Console.WriteLine("Hi");
-}                      print "Hi"
+}
 
 ```
 ## Roadmap
