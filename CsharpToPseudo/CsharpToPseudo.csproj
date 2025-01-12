@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <RootNamespace>CsharpToPseudo</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <Target Name="SetSolutionPathAttribute" BeforeTargets="BeforeCompile">
+        <ItemGroup>
+            <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+                <_Parameter1>ProjectPath</_Parameter1>
+                <_Parameter2>$(MSBuildProjectFullPath)</_Parameter2>
+            </AssemblyAttribute>
+        </ItemGroup>
+    </Target>
+    
+    <ItemGroup>
+        <PackageReference Include="Buildalyzer" Version="7.1.0" />
+        <PackageReference Include="Buildalyzer.Workspaces" Version="7.1.0" />
+        <PackageReference Include="OnlyValidationTypes" Version="1.1.0" />
+    </ItemGroup>
+
+</Project>
