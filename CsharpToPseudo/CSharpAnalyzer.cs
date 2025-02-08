@@ -57,7 +57,6 @@ public static class CSharpAnalyzer
 
     private static async Task<TypeDeclarationSyntax?> AnalyzeDocument(Document csDocument, Compilation compilation)
     {
-        // Find class declarations
         var syntaxTree = await csDocument.GetSyntaxTreeAsync();
 
         if (syntaxTree == null)
@@ -66,12 +65,9 @@ public static class CSharpAnalyzer
         var semanticModel = compilation.GetSemanticModel(syntaxTree);
         var root = await syntaxTree.GetRootAsync();
 
-        if (root is TypeDeclarationSyntax typeRoot && typeRoot.InheritsInterface(semanticModel, typeof(IAnalyzable).FullName!))
-        {
-            return typeRoot;
-        }
-
-        return null;
+        return root.DescendantNodes()
+            .OfType<TypeDeclarationSyntax>()
+            .FirstOrDefault(td => td.InheritsInterface(semanticModel, typeof(IAnalyzable).FullName!));
     }
 
     private static bool InheritsInterface(

@@ -1,230 +1,367 @@
-﻿using System.Collections.Immutable;
-using System.Text;
+﻿namespace CsharpToPseudo.PseudoCode;
 
-namespace CsharpToPseudo.PseudoCode;
-
-public record PseudoTypeDeclaration
+public readonly record struct PseudoModifier(ReadOnlyMemory<char> Name)
 {
-    public NonEmptyString Name { get; init; }
-    
-    public NonEmptyString Type { get; init; }
-    
-    public ImmutableList<PseudoModifier> Modifiers { get; init; }
+    public override string ToString() => new(Name.Span);
 
-    public ImmutableList<PseudoProperty> Properties { get; init; }
-    public ImmutableList<PseudoField> Fields { get; init; }
-    public ImmutableList<PseudoMethod> Methods { get; init; }
-
-    public PseudoTypeDeclaration(
-        NonEmptyString name,
-        NonEmptyString type,
-        IEnumerable<PseudoModifier> modifiers,
-        IEnumerable<PseudoProperty> properties,
-        IEnumerable<PseudoField> fields,
-        IEnumerable<PseudoMethod> methods
-    )
+    // Combine a collection of modifiers into a single string.
+    public static string Combine(ReadOnlyMemory<PseudoModifier> modifiers)
     {
-        Name = name;
-        Type = type;
-        Modifiers = modifiers.ToImmutableList();
-        Properties = properties.ToImmutableList();
-        Fields = fields.ToImmutableList();
-        Methods = methods.ToImmutableList();
-    }
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        sb.Append(PseudoModifier.Combine(Modifiers));
-        sb.Append(Type);
-        sb.Append(' ');
-        sb.Append(Name);
-        sb.Append(' ');
-        sb.Append('{');
-        sb.Append('\n');
-        // set fields, properties, methods etc..
-        
-        return sb.ToString();
-    }
-}
-
-public abstract record PseudoMember
-{
-    public NonEmptyString Name { get; init; }
-
-    public ImmutableList<PseudoModifier> Modifiers { get; init; }
-
-    public PseudoType Type { get; init; }
-    
-    public string? Value { get; init; }
-
-    public PseudoMember(NonEmptyString name, IEnumerable<PseudoModifier> modifiers, PseudoType type, string? value)
-    {
-        Name = name;
-        Modifiers = modifiers.ToImmutableList();
-        Type = type;
-        Value = value;
-    }
-}
-
-public record PseudoProperty : PseudoMember
-{
-    public PseudoPropertyMethod Getter { get; init; }
-    public PseudoPropertyMethod? Setter { get; init; }
-
-    public PseudoProperty(
-        NonEmptyString name,
-        IEnumerable<PseudoModifier> modifiers,
-        PseudoType type,
-        PseudoPropertyMethod getter,
-        PseudoPropertyMethod? setter,
-        string? value = null
-    )
-        : base(name, modifiers, type, value)
-    {
-        Getter = getter;
-        Setter = setter;
-    }
-}
-
-public record PseudoPropertyMethod
-{
-    public PseudoModifier Modifier { get; init; }
-
-    public PropertyMethodType MethodType { get; private set; }
-
-    public PseudoPropertyMethod(PseudoModifier modifier, PropertyMethodType methodType)
-    {
-        Modifier = modifier;
-        MethodType = methodType;
-    }
-}
-
-public record PseudoConstructor : PseudoMethod
-{
-    public PseudoConstructor(
-        NonEmptyString name,
-        IEnumerable<PseudoModifier> modifiers,
-        IEnumerable<PseudoParameter> parameters
-    )
-        : base(name, modifiers, null, parameters) { }
-}
-
-public record PseudoMethod
-{
-    public NonEmptyString Name { get; init; }
-
-    public ImmutableList<PseudoModifier> Modifiers { get; init; }
-
-    public PseudoType? ReturnType { get; init; }
-
-    public ImmutableList<PseudoParameter> Parameters { get; init; }
-
-    public PseudoMethod(
-        NonEmptyString name,
-        IEnumerable<PseudoModifier> modifiers,
-        PseudoType? returnType,
-        IEnumerable<PseudoParameter> parameters
-    )
-    {
-        Name = name;
-        Modifiers = modifiers.ToImmutableList();
-        ReturnType = returnType;
-        Parameters = parameters.ToImmutableList();
-    }
-}
-
-public record PseudoParameter
-{
-    public NonEmptyString Name { get; init; }
-
-    public PseudoType Type { get; init; }
-
-    public PseudoParameter(NonEmptyString name, PseudoType type)
-    {
-        Name = name;
-        Type = type;
-    }
-}
-
-public record PseudoField : PseudoMember
-{
-    public PseudoField(
-        NonEmptyString name,
-        IEnumerable<PseudoModifier> modifiers,
-        PseudoType type,
-        string? value = null
-    )
-        : base(name, modifiers, type, value)
-    {}
-}
-
-public record PseudoType
-{
-    public NonEmptyString TypeName { get; init; }
-
-    public PseudoType(Type type)
-    {
-        if (Nullable.GetUnderlyingType(type) is not null)
+        int totalLength = 0;
+        var modSpan = modifiers.Span;
+        for (int i = 0; i < modSpan.Length; i++)
         {
-            TypeName = $"{type.Name} | null";
+            totalLength += modSpan[i].Name.Span.Length + 1;
         }
-        else if (type.IsGenericType)
+
+        Span<char> buffer = totalLength <= 256 
+            ? stackalloc char[totalLength] 
+            : new char[totalLength];
+
+        int pos = 0;
+        for (int i = 0; i < modSpan.Length; i++)
         {
-            TypeName = "Any";
+            ReadOnlySpan<char> modName = modSpan[i].Name.Span;
+            modName.CopyTo(buffer[pos..]);
+            pos += modName.Length;
+            buffer[pos++] = ' ';
         }
-        else
-        {
-            TypeName = type.Name;
-        }
+        return new string(buffer[..pos]);
     }
 }
 
-public class PseudoModifier
+public readonly record struct PseudoType(ReadOnlyMemory<char> TypeName)
 {
-    private NonEmptyString Name { get; init; }
-    
-    public PseudoModifier(NonEmptyString name)
-    {
-        Name = name;
-    }
-    
-    public static string Combine(IEnumerable<PseudoModifier> modifiers)
-    {
-        var sb = new StringBuilder();
-        foreach (var modifier in modifiers)
-        {
-            sb.Append(modifier);
-        }
-        return sb.ToString();
-    }
-
-    public override string ToString()
-    {
-        return $"{Name} ";
-    }
+    public override string ToString() => new(TypeName.Span);
 }
 
-public class PropertyMethodType
+public readonly record struct PropertyMethodType(ReadOnlyMemory<char> Name)
 {
-    private NonEmptyString Name { get; init; }
+    public override string ToString() => new(Name.Span);
 
-    private PropertyMethodType(NonEmptyString name)
-    {
-        Name = name;
-    }
-    
-    public static PropertyMethodType Get => new("get");
-    public static PropertyMethodType Set => new("set");
-    public static PropertyMethodType Init => new("init");
+    public static PropertyMethodType Get => new("get".AsMemory());
+    public static PropertyMethodType Set => new("set".AsMemory());
+    public static PropertyMethodType Init => new("init".AsMemory());
+}
 
-    public override string ToString()
+public readonly record struct PseudoPropertyMethod(PseudoModifier Modifier, PropertyMethodType MethodType)
+{
+    public override string ToString() =>
+        string.Concat(Modifier.ToString(), MethodType.ToString(), ";");
+}
+
+public readonly record struct PseudoParameter(ReadOnlyMemory<char> Name, PseudoType Type)
+{
+    public override string ToString() =>
+        string.Concat(Type.ToString(), " ", new string(Name.Span));
+}
+
+public readonly record struct PseudoMethod(
+    ReadOnlyMemory<char> Name,
+    ReadOnlyMemory<PseudoModifier> Modifiers,
+    PseudoType ReturnType,
+    bool HasReturnType,
+    ReadOnlyMemory<PseudoParameter> Parameters)
+{
+    public string ToPseudoString()
     {
-        var sb = new StringBuilder();
-        sb.Append('{');
-        sb.Append(Name);
-        sb.Append(';');
-        sb.Append('}');
-        return sb.ToString();
+        const int bufferSize = 1024 * 10;
+        Span<char> buffer = stackalloc char[bufferSize];
+        int pos = 0;
+
+        // Append method modifiers.
+        var mods = Modifiers.Span;
+        for (int i = 0; i < mods.Length; i++)
+        {
+            string modStr = mods[i].ToString();
+            modStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += modStr.Length;
+            buffer[pos++] = ' ';
+        }
+
+        // Append return type if present.
+        if (HasReturnType)
+        {
+            string retStr = ReturnType.ToString();
+            retStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += retStr.Length;
+            buffer[pos++] = ' ';
+        }
+
+        // Append method name.
+        string nameStr = new string(Name.Span);
+        nameStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += nameStr.Length;
+        buffer[pos++] = '(';
+
+        // Append parameters.
+        var paramsSpan = Parameters.Span;
+        for (int i = 0; i < paramsSpan.Length; i++)
+        {
+            string paramStr = paramsSpan[i].ToString();
+            paramStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += paramStr.Length;
+            if (i < paramsSpan.Length - 1)
+            {
+                buffer[pos++] = ',';
+                buffer[pos++] = ' ';
+            }
+        }
+        buffer[pos++] = ')';
+
+        // Append trailing text.
+        const string trailing = " { ... }";
+        trailing.AsSpan().CopyTo(buffer[pos..]);
+        pos += trailing.Length;
+        return new string(buffer[..pos]);
     }
+    public override string ToString() => ToPseudoString();
+}
+
+public readonly record struct PseudoField(
+    ReadOnlyMemory<char> Name,
+    ReadOnlyMemory<PseudoModifier> Modifiers,
+    PseudoType FieldType,
+    ReadOnlyMemory<char> Value) // if Value is empty, no initializer.
+{
+    public string ToPseudoString()
+    {
+        const int bufferSize = 1024;
+        Span<char> buffer = stackalloc char[bufferSize];
+        int pos = 0;
+
+        // Append field modifiers.
+        var mods = Modifiers.Span;
+        for (int i = 0; i < mods.Length; i++)
+        {
+            string modStr = mods[i].ToString();
+            modStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += modStr.Length;
+            buffer[pos++] = ' ';
+        }
+        // Append field type.
+        string typeStr = FieldType.ToString();
+        typeStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += typeStr.Length;
+        buffer[pos++] = ' ';
+        // Append field name.
+        string nameStr = new string(Name.Span);
+        nameStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += nameStr.Length;
+        // Append initializer if any.
+        if (Value.Length > 0)
+        {
+            buffer[pos++] = ' ';
+            buffer[pos++] = '=';
+            buffer[pos++] = ' ';
+            string valueStr = new string(Value.Span);
+            valueStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += valueStr.Length;
+        }
+        buffer[pos++] = ';';
+        return new string(buffer[..pos]);
+    }
+    public override string ToString() => ToPseudoString();
+}
+
+public readonly record struct PseudoProperty(
+    ReadOnlyMemory<char> Name,
+    ReadOnlyMemory<PseudoModifier> Modifiers,
+    PseudoType PropertyType,
+    PseudoPropertyMethod Getter,
+    bool HasSetter,
+    PseudoPropertyMethod? Setter,
+    ReadOnlyMemory<char> Value) // optional initializer value.
+{
+    public string ToPseudoString()
+    {
+        const int bufferSize = 1024;
+        Span<char> buffer = stackalloc char[bufferSize];
+        int pos = 0;
+
+        // Append property modifiers.
+        var mods = Modifiers.Span;
+        for (int i = 0; i < mods.Length; i++)
+        {
+            string modStr = mods[i].ToString();
+            modStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += modStr.Length;
+            buffer[pos++] = ' ';
+        }
+        // Append property type.
+        string typeStr = PropertyType.ToString();
+        typeStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += typeStr.Length;
+        buffer[pos++] = ' ';
+        // Append property name.
+        string nameStr = new string(Name.Span);
+        nameStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += nameStr.Length;
+        buffer[pos++] = ' ';
+
+        // Append property accessors.
+        buffer[pos++] = '{';
+        buffer[pos++] = ' ';
+        string getterStr = Getter.ToString();
+        getterStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += getterStr.Length;
+        if (HasSetter)
+        {
+            buffer[pos++] = ' ';
+            string setterStr = Setter.ToString();
+            setterStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += setterStr.Length;
+        }
+        buffer[pos++] = ' ';
+        buffer[pos++] = '}';
+
+        // Append initializer if any.
+        if (Value.Length > 0)
+        {
+            buffer[pos++] = ' ';
+            buffer[pos++] = '=';
+            buffer[pos++] = ' ';
+            string valueStr = new string(Value.Span);
+            valueStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += valueStr.Length;
+            buffer[pos++] = ';';
+        }
+        return new string(buffer[..pos]);
+    }
+    public override string ToString() => ToPseudoString();
+}
+
+public readonly record struct PseudoConstructor(
+    ReadOnlyMemory<char> Name, // typically the same as the type name.
+    ReadOnlyMemory<PseudoModifier> Modifiers,
+    ReadOnlyMemory<PseudoParameter> Parameters)
+{
+    public string ToPseudoString()
+    {
+        const int bufferSize = 1024;
+        Span<char> buffer = stackalloc char[bufferSize];
+        int pos = 0;
+
+        // Append constructor modifiers.
+        var mods = Modifiers.Span;
+        for (int i = 0; i < mods.Length; i++)
+        {
+            string modStr = mods[i].ToString();
+            modStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += modStr.Length;
+            buffer[pos++] = ' ';
+        }
+        // Append constructor name.
+        string nameStr = new string(Name.Span);
+        nameStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += nameStr.Length;
+        buffer[pos++] = '(';
+        // Append parameters.
+        var paramsSpan = Parameters.Span;
+        for (int i = 0; i < paramsSpan.Length; i++)
+        {
+            string paramStr = paramsSpan[i].ToString();
+            paramStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += paramStr.Length;
+            if (i < paramsSpan.Length - 1)
+            {
+                buffer[pos++] = ',';
+                buffer[pos++] = ' ';
+            }
+        }
+        buffer[pos++] = ')';
+        const string trailing = " { ... }";
+        trailing.AsSpan().CopyTo(buffer[pos..]);
+        pos += trailing.Length;
+        return new string(buffer[..pos]);
+    }
+    public override string ToString() => ToPseudoString();
+}
+
+public readonly record struct PseudoTypeDeclaration(
+    ReadOnlyMemory<char> TypeKeyword, // e.g. "class", "struct", etc.
+    ReadOnlyMemory<char> Name,
+    ReadOnlyMemory<PseudoModifier> Modifiers,
+    ReadOnlyMemory<PseudoField> Fields,
+    ReadOnlyMemory<PseudoProperty> Properties,
+    ReadOnlyMemory<PseudoConstructor> Constructors,
+    ReadOnlyMemory<PseudoMethod> Methods
+)
+{
+    public string ToPseudoString()
+    {
+        const int bufferSize = 1024 * 10;
+        Span<char> buffer = stackalloc char[bufferSize];
+        int pos = 0;
+
+        // Append type modifiers.
+        var mods = Modifiers.Span;
+        for (int i = 0; i < mods.Length; i++)
+        {
+            string modStr = mods[i].ToString();
+            modStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += modStr.Length;
+            buffer[pos++] = ' ';
+        }
+
+        // Append type keyword and name.
+        string typeStr = new string(TypeKeyword.Span);
+        typeStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += typeStr.Length;
+        buffer[pos++] = ' ';
+        string nameStr = new string(Name.Span);
+        nameStr.AsSpan().CopyTo(buffer[pos..]);
+        pos += nameStr.Length;
+        buffer[pos++] = '\n';
+        buffer[pos++] = '{';
+        buffer[pos++] = '\n';
+
+        // Append fields.
+        var fieldsSpan = Fields.Span;
+        for (int i = 0; i < fieldsSpan.Length; i++)
+        {
+            buffer[pos++] = '\t';
+            string fieldStr = fieldsSpan[i].ToPseudoString();
+            fieldStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += fieldStr.Length;
+            buffer[pos++] = '\n';
+        }
+
+        // Append properties.
+        var propsSpan = Properties.Span;
+        for (int i = 0; i < propsSpan.Length; i++)
+        {
+            buffer[pos++] = '\t';
+            string propStr = propsSpan[i].ToPseudoString();
+            propStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += propStr.Length;
+            buffer[pos++] = '\n';
+        }
+
+        // Append constructors.
+        var ctorsSpan = Constructors.Span;
+        for (int i = 0; i < ctorsSpan.Length; i++)
+        {
+            buffer[pos++] = '\t';
+            string ctorStr = ctorsSpan[i].ToPseudoString();
+            ctorStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += ctorStr.Length;
+            buffer[pos++] = '\n';
+        }
+
+        // Append methods.
+        var methodsSpan = Methods.Span;
+        for (int i = 0; i < methodsSpan.Length; i++)
+        {
+            buffer[pos++] = '\t';
+            string methodStr = methodsSpan[i].ToPseudoString();
+            methodStr.AsSpan().CopyTo(buffer[pos..]);
+            pos += methodStr.Length;
+            buffer[pos++] = '\n';
+        }
+        buffer[pos++] = '}';
+        return new string(buffer[..pos]);
+    }
+
+    public override string ToString() => ToPseudoString();
 }
