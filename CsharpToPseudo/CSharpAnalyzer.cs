@@ -9,11 +9,11 @@ namespace CsharpToPseudo;
 
 public static class CSharpAnalyzer
 {
-    public static async Task<ImmutableList<TypeDeclarationSyntax>> Analyze()
+    public static async Task<ImmutableList<TypeDeclarationSyntax>> Analyze(Assembly? assembly = null)
     {
-        var assembly = Assembly.GetExecutingAssembly();
+        var actualAssembly = assembly ?? Assembly.GetExecutingAssembly();
         var projectPath =
-            assembly
+            actualAssembly
                 .GetCustomAttributes<AssemblyMetadataAttribute>()
                 .FirstOrDefault(
                     x => string.Equals(x.Key, "ProjectPath", StringComparison.OrdinalIgnoreCase)

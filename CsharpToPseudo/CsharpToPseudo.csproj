@@ -21,11 +21,5 @@
         <PackageReference Include="Buildalyzer.Workspaces" Version="7.1.0" />
         <PackageReference Include="OnlyValidationTypes" Version="1.1.0" />
     </ItemGroup>
-    
-    <ItemGroup>
-      <Reference Include="CsharpToPseudo">
-        <HintPath>..\TestProject\bin\Debug\net8.0\CsharpToPseudo.dll</HintPath>
-      </Reference>
-    </ItemGroup>
 
 </Project>

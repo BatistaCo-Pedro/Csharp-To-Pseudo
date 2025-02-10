@@ -1,4 +1,4 @@
-﻿namespace CsharpToPseudo;
+﻿namespace CSharpToPseudo.Benchmarks;
 
 public abstract class AbstractTest : IAnalyzable
 {

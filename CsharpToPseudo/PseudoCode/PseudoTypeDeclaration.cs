@@ -67,7 +67,7 @@ public readonly record struct PseudoMethod(
     {
         const int bufferSize = 1024 * 10;
         Span<char> buffer = stackalloc char[bufferSize];
-        int pos = 0;
+        var pos = 0;
 
         // Append method modifiers.
         var mods = Modifiers.Span;

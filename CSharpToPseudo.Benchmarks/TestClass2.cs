@@ -1,4 +1,4 @@
-﻿namespace CsharpToPseudo;
+﻿namespace CSharpToPseudo.Benchmarks;
 
 public class TestClass2 : AbstractTest, ITestInterface
 {
