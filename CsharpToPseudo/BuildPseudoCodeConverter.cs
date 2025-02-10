@@ -19,8 +19,8 @@ public abstract class BuildPseudoCodeConverter : IPseudoCodeConverter
     {
         // Note: In our pseudo model the first parameter is the type keyword (e.g. "class")
         // and the second is the type name.
-        var typeKeyword = typeRoot.Keyword.Text;
-        var name = typeRoot.Identifier.Text;
+        var typeKeyword = typeRoot.Keyword.Text.AsMemory();
+        var name = typeRoot.Identifier.Text.AsMemory();
         var modifiers = typeRoot.Modifiers.Select(m => new PseudoModifier(m.Text.AsMemory()));
 
         // Process each kind of member.
@@ -39,8 +39,8 @@ public abstract class BuildPseudoCodeConverter : IPseudoCodeConverter
 
         // Note the order: first parameter is the type keyword, second is the type name.
         return new PseudoTypeDeclaration(
-            typeKeyword.AsMemory(),
-            name.AsMemory(),
+            typeKeyword,
+            name,
             modifiers.ToArray(),
             fields.ToArray(),
             properties.ToArray(),

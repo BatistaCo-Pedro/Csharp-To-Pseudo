@@ -1,1 +1,1 @@
-﻿BenchmarkRunner.Run<AnalyzerBenchmarks>();
+﻿BenchmarkRunner.Run<BenchmarkClass>();
